@@ -16,4 +16,4 @@ to get an example.
 
 Citations:
 
-Dai, X., Fu, G., Reese, R., Zhao, S., & Shang, Z. (2022). An approach of Bayesian variable selection for ultrahigh dimensional multivariate regression. Stat, doi: 10.1002/sta4.476.
+Dai, X., Fu, G., Reese, R., Zhao, S., & Shang, Z. (2022). An approach of Bayesian variable selection for ultrahigh dimensional multivariate regression. Stat, DOI: 10.1002/sta4.476.
