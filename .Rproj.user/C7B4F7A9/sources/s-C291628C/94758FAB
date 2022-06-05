@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1580418611823.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "94758FAB",
+    "lastKnownWriteTime" : 1580861452,
+    "last_content_update" : 1580862267572,
+    "path" : "~/Dropbox/Projects/CA-TREND/RealData1/snpstats.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "50,56",
+        "scrollLine" : "36"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

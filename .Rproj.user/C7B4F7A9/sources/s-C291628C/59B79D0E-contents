@@ -1,0 +1,140 @@
+# CA-Trend
+cum2 = function(a, b = a, n) {
+  return(sum((a - mean(a)) * (b - mean(b))) / n)
+}
+
+cum2x = function(a, n) {
+  if (max(table(a)) > 0.8 * n) {
+    return(0)
+  } else {
+    return(1)
+  }
+}
+
+CA = function(Y, X) {
+  n = length(X)
+  if (cum2x(X, n = n) == 0) {
+    return(0)
+  } else {
+    return(abs(cum2(Y, X, n) / sqrt(cum2(Y, n = n) * cum2(X, n = n))))
+  }
+}
+
+#CAISIS = function(data, p1) {
+#  y = data[, 1]
+#  x = data[, -1]
+#  p = dim(x)[2]
+#  n = dim(x)[1]
+#  rank.IDCSIS = rep(0, p)
+#  final.cols = rep(0, p)
+#  final.omega = rep(0, p)
+#  omega.all = rep(0, p)
+#  m0 = 1
+#  svec = c(0, p1, 450)
+#  Index = 1:p
+#  while(m0 < 3) {
+#    s = svec[m0]
+#    omega = rep(0, p - s)
+#    for(k in 1:(p - s)) {
+#      omega[k] = CA(y, x[, k])
+#    }
+#    rank.DCSIS = p + 1 - rank(omega, ties.method = "random")
+#    step.cols = which(rank.DCSIS %in% (s + 1):(s + svec[m0 + 1]))
+#    
+#    final.cols[(s + 1):(s + p1)] = Index[step.cols]
+#    final.omega[(s + 1):(s + p1)] = omega[step.cols]
+#    print(final.cols[(s + 1):(s + p1)])
+#    Index = Index[-step.cols]
+#    tempx = x[, step.cols]
+#    mydata = data.frame(cbind(y, tempx))
+#    logit = glm(y ~ ., data = mydata, family = "binomial")
+#    predict.y = predict(logit, mydata, type = "response")
+#    predict.y[predict.y >= 0.5] = 1
+#    predict.y[predict.y < 0.5] = 0
+#    x = x[which(predict.y == y), ]
+#    y = y[which(predict.y == y)]
+#    m0 = m0 + 1
+#  }
+#  
+#  s = (m - 1) * p1
+#  rank.DCSIS = rep(0, p - s)
+#  omega = rep(0, p - s)
+#  for(k in 1:(p - s)) {
+#    omega[k] = CA(y, x[, k])
+#  }
+#  rank.DCSIS = p + 1 - rank(omega, ties.method = "random")
+#  step.cols = order(rank.DCSIS)
+#  final.cols[(s + 1):p] = Index[step.cols]
+#  final.omega[(s + 1):p] = omega[step.cols]
+  #print(final.cols[1, (s + 1):p])
+  #for(i in 1:p) {
+  #  omega.all[i] = final.omega[which(final.cols == i)]
+  #  rank.IDCSIS[i] = which(final.cols == i)
+  #}
+#  omega.all = final.omega[final.cols]
+#  rank.IDCSIS = order(omega.all)
+#  
+#  IDC_res = data.frame(cbind(as.numeric(omega.all), as.numeric(rank.IDCSIS)))
+#  return(IDC_res)
+#}
+
+
+CASIS = function(Y, genotype) {
+  y = Y
+  p = dim(genotype)[2]
+  n = dim(genotype)[1]
+  omega = rep(0, p)
+  for (k in 1:p) {
+    x = as.numeric(genotype[, k])
+    omega[k] = CA(y, x)
+  }
+  
+  return(omega)
+}
+
+
+CAISIS = function(Y, genotype, omega, p1) {
+  y = Y
+  p = dim(genotype)[2]
+  n = dim(genotype)[1]
+  final.omega = rep(0, p)
+  rank = p + 1 - rank(omega, ties.method = "random")
+  final.omega[which(rank %in% 1:p1)] = omega[which(rank %in% 1:p1)]
+  index = which(rank %in% (p1 + 1):493)
+  tempx = genotype[, index]
+  tempx = apply(tempx, 2, as.numeric)
+  tempx = residuals(lm(tempx ~ apply(genotype[, which(rank %in% 1:p1)], 2, as.numeric)))
+  for (k in 1:length(index)) {
+    final.omega[index[k]] = CA(y, tempx[, k])
+  }
+  result = cbind(final.omega, rank)
+  
+  return(result)
+}
+
+
+# Choose p1
+chooseP1 = function(data) {
+  y = data[, 1]
+  x = data[, -1]
+  p = dim(x)[2]
+  n = dim(x)[1]
+  omega = rep(0, p)
+  for(k in 1:p) {
+    omega[k] = CA(y, x[, k])
+  }
+  rank = p + 1 - rank(omega, ties.method = "random")
+  accuracy = rep(0, 200)
+  for(index in 1:200) {
+    train = sample(1:n, 0.75 * n, replace = TRUE)###Not sure why he repeated, but whatever. 
+    mydata = data.frame(cbind(y, x[, which(rank <= index)]))
+    logit = glm(y ~ ., data = mydata[train, ], family = "binomial")
+    predict.y = predict(logit, mydata[-train, ], type = "response")
+    predict.y[predict.y >= 0.5] = 1
+    predict.y[predict.y < 0.5] = 0
+    accuracy[index] = length(which(predict.y == y[-train]))
+  }
+  
+  return(min(which(accuracy == max(accuracy))))
+}
+

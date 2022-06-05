@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1580861774814.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1476213754",
+    "id" : "59B79D0E",
+    "lastKnownWriteTime" : 1580690681,
+    "last_content_update" : 1580690681,
+    "path" : "~/Dropbox/Projects/CA-TREND/RealData1/functions.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

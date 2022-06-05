@@ -1,0 +1,98 @@
+
+source("https://bioconductor.org/biocLite.R")
+# biocLite("snpStats")
+
+source("functions.R")
+library(snpStats)
+
+# genotypes
+bed1 = read.plink("36417/NICHD_PolycysticOvary_c1_PCOS.bed")
+map1 = bed1$map
+bed1 = bed1$genotypes
+class(bed1) = "matrix"
+
+bed2 = read.plink("36419/NICHD_PolycysticOvary_c2_NUGENE.bed")
+map2 = bed2$map
+bed2 = bed2$genotypes
+class(bed2) = "matrix"
+
+genotype = rbind(bed1, bed2)
+# X = apply(genotype, 2, as.numeric)
+Y = c(rep(1, 1043), rep(0, 3056))
+# data = cbind(Y, X)
+
+# CA
+omega = CASIS(Y, genotype)
+result = as.data.frame(cbind(map1$chromosome, map1$position, map1$snp.name,
+                             map1$allele.1, map1$allele.2, omega))
+names(result) = c("chromosome", "position", "snp", "allele.1", "allele.2", "omega")
+result$chromosome = as.numeric(as.character(result$chromosome))
+result$position = as.numeric(as.character(result$position))
+result$omega = as.numeric(as.character(result$omega))
+result = na.omit(result)
+
+# Choose p1 (191)
+set.seed(10000000)
+P1 = chooseP1(data) #191
+
+# Iterative CA
+result = CAISIS(Y, genotype, omega, p1 = 191) ##P1 = 191
+result = as.data.frame(cbind(map1$chromosome, map1$position, map1$snp.name,
+                             map1$allele.1, map1$allele.2, result))
+names(result) = c("chromosome", "position", "snp", "allele.1", "allele.2", "omega", "rank")
+result$chromosome = as.numeric(result$chromosome)
+result$position = as.numeric(result$position)
+result$omega = as.numeric(as.character(result$omega))
+result = na.omit(result)
+
+# Penalized regressions
+small = genotype[, which(map1$snp.name %in% 
+                           as.character(result[which(result$omega >= sort(result$omega, decreasing = TRUE)[493]), 
+                                               "snp"]))]
+small = apply(small, 2, as.numeric)
+
+# Adaptive LASSO
+weights.fit = cv.glmnet(small, Y, type.measure = "class", family = "binomial",
+                        nfold = 10, alpha = 0)
+best_ridge_coef = as.numeric(coef(weights.fit, s = weights.fit$lambda.1se))[-1]
+alasso.fit = cv.glmnet(small, Y, type.measure = "class", family = "binomial",
+                       nfold = 10, alpha = 1, penalty.factor = 1 / abs(best_ridge_coef),
+                       keep = TRUE)
+alasso.fit = glmnet(small, Y, family = "binomial", lambda = alasso.fit$lambda.1se,
+                    alpha = 1, penalty.factor = 1 / abs(best_ridge_coef))
+### AIC
+2 * length(which(as.numeric(coef(alasso.fit, s = alasso.fit$lambda.1se)) > 0)) - alasso.fit$nulldev / 2
+### Misclassification rate
+alasso.pred = as.numeric(predict(alasso.fit, type = "class", newx = small))
+sum(abs(alasso.pred - Y)) / length(Y)
+# Final results
+final = result[which(as.numeric(coef(alasso.fit, s = alasso.fit$lambda.1se)) != 0), ]
+
+# LASSO
+lasso.fit = cv.glmnet(small, Y, type.measure = "class", family = "binomial",
+                      nfold = 10, alpha = 1)
+lasso.fit = glmnet(small, Y, family = "binomial", lambda = lasso.fit$lambda.1se, alpha = 1)
+### AIC
+2 * length(which(as.numeric(coef(lasso.fit, s = lasso.fit$lambda.1se)) > 0)) - lasso.fit$nulldev / 2
+### Misclassification rate
+lasso.pred = as.numeric(predict(lasso.fit, type = "class", newx = small))
+sum(abs(lasso.pred - Y)) / length(Y)
+
+# Elastic Net
+en.fit = cv.glmnet(small, Y, type.measure = "class", family = "binomial",
+                   nfold = 10, alpha = 0.09)
+en.fit = glmnet(small, Y, family = "binomial", lambda = en.fit$lambda.1se, alpha = 0.09)
+### AIC
+2 * length(which(as.numeric(coef(en.fit, s = en.fit$lambda.1se)) > 0)) - en.fit$nulldev / 2
+### Misclassification rate
+en.pred = as.numeric(predict(en.fit, type = "class", newx = small))
+sum(abs(en.pred - Y)) / length(Y)
+
+
+# Manhattan plot
+result = result[!result$chromosome %in% c(24, 25), ]
+library(qqman)
+manhattan(result, chr = "chromosome", bp = "position", p = "omega", snp = "snp",
+          logp = FALSE, ylim = c(0, 0.1), ylab = "CT-SIS score")
+manhattan(result, chr = "chromosome", bp = "position", p = "omega", snp = "snp",
+          logp = FALSE, ylim = c(0, 0.1), ylab = "ICT-SIS score")
